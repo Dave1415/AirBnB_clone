@@ -1,38 +1,37 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 """
-Created on: Oct 31, 2022
-Authors: Dave
-        Darmi
+This module contains the BaseModel Class
 """
 import uuid
+import copy
 from datetime import datetime
 import models
 
 
-class BaseModel:
-    """
-    base_model that defines all common attributes/methods for other classes
-    """
+class BaseModel():
+    """Class representing the BaseModel Class"""
+
+    valid_attributes = {
+        "User": {
+            'first_name': str,
+            'last_name': str,
+            'email': str,
+            'password': str,
+        }
+    }
+
     def __init__(self, *args, **kwargs):
-        """init method for BaseModel Class
-        Attributes:
-            args (list): inputted arguments as a list.
-            kwargs (dict): inputted arguments as a dict.
-            id (str) - assign with an uuid when an instance is created.
-            created_at (time): datetime - assign with the current datetime when
-                an instance is created.
-            updated_at (time): datetime - assign with the current datetime when
-                n instance is created and it will be updated every time you
-                change your object.
-        """
-        if len(kwargs) > 0:
-            for k, v in kwargs.items():
-                if k in ['created_at', 'updated_at']:
-                    self.__dict__[k] = datetime\
-                                       .strptime(v, '%Y-%m-%dT%H:%M:%S.%f')
-                elif k == 'id':
-                    self.id = v
+        # create uuid when instance is initialized and convert to string
+        if len(kwargs) != 0:
+            for key, value in kwargs.items():
+                if key == 'created_at' or key == 'updated_at':
+                    setattr(self,
+                            key,
+                            datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.%f'))
+                elif key == '__class__':
+                    continue
+                else:
+                    setattr(self, key, value)
         else:
             self.id = str(uuid.uuid4())
             self.created_at = datetime.now()
@@ -40,29 +39,18 @@ class BaseModel:
             models.storage.new(self)
 
     def __str__(self):
-        """str method for BaseModel Class
-            Return:
-                string (str): string descriptor for BaseModel Class
-        """
-        return "[{}] ({}) {}".format(self.__class__.__name__, self.id,
-                                     self.__dict__)
+        """Method that returns a string representation of an instance"""
+        return ("[{}] ({}) {}".format(self.__class__.__name__,
+                                      self.id,
+                                      self.__dict__))
 
     def save(self):
-        """
-        updates the public instance attribute updated_at with the
-        current datetime
-        """
         self.updated_at = datetime.now()
         models.storage.save()
 
     def to_dict(self):
-        """returns a dictionary containing all keys/values of __dict__
-        of the instance
-        Return:
-            dictionary (dict): Dictionary object that contains __dict__
-        """
-        dictionary = self.__dict__.copy()
-        dictionary["created_at"] = self.created_at.isoformat()
-        dictionary["updated_at"] = self.updated_at.isoformat()
-        dictionary["__class__"] = self.__class__.__name__
-        return dictionary
+        dict_ = copy.deepcopy(self.__dict__)
+        dict_['updated_at'] = dict_['updated_at'].isoformat()
+        dict_['created_at'] = dict_['created_at'].isoformat()
+        dict_['__class__'] = self.__class__.__name__
+        return (dict_)
